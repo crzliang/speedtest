@@ -49,12 +49,11 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Extract Docker metadata (tags & labels)
+      - name: Extract Docker metadata (tags & labels)
         id: meta
         uses: docker/metadata-action@v5
         with:
-      images: ${{ steps.prep.outputs.image_name }}
+          images: ${{ steps.prep.outputs.image_name }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=tag
@@ -90,12 +89,12 @@ jobs:
           docker logs speedtest_smoke | tail -n 50
           docker rm -f speedtest_smoke
 
-    - name: Summary
+      - name: Summary
         run: |
           echo "Built image tags:" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.meta.outputs.tags }}" | tr ' ' '\n' >> $GITHUB_STEP_SUMMARY
           echo "\nPull example (latest):" >> $GITHUB_STEP_SUMMARY
-      echo "docker pull ${{ steps.prep.outputs.image_name }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ steps.prep.outputs.image_name }}:latest" >> $GITHUB_STEP_SUMMARY
 
   # 可选：后续可添加安全扫描 / SBOM 任务
   # scan:
