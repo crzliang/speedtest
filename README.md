@@ -1,6 +1,10 @@
-# Speedtest (PHP + Nginx) 
+# Speedtest-New
 
-一个简单的 PHP / Nginx 容器，用于 speedtest 前端部署。
+> 项目代码主要来源是 https://github.com/librespeed/speedtest
+>
+> index.html的代码是我在一家卖vps的用户群中获取到的
+> 
+> CI工作流和Dockerfile是由AI完成
 
 ## 目录结构
 ```
@@ -62,12 +66,3 @@ ENV APP_ENV=$APP_ENV
 build-args: |
   APP_ENV=prod
 ```
-
-## 后续可选改进
-- 添加 Trivy 安全扫描
-- 生成 SBOM (Syft)
-- push 到 Docker Hub (再加一个 login step)
-- 增加简单端到端测试 (curl 容器内 /)
-
----
-MIT License
