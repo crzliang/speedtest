@@ -1,4 +1,3 @@
-<!-- moved from root -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -8,9 +7,375 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-<!-- content truncated for brevity in repo reorg; original styling preserved -->
+
+<style type="text/css">
+    :root {
+        --accent-color: #e040fb;
+        --accent-color-light: #f0a0ff;
+        --text-color: #ffffff;
+        --light-text-color: rgba(255, 255, 255, 0.7);
+        --border-color: rgba(255, 255, 255, 0.2);
+        --bg-color: #1a1a1a;
+        --glass-bg: rgba(22, 22, 32, 0.45);
+    }
+
+    html {
+        min-height: 100%;
+        overflow-y: scroll; 
+    }
+
+    body {
+        border: none; padding: 0; margin: 0;
+        background-color: var(--bg-color);
+        background-image: url('https://t.alcy.cc/ycy');
+        background-size: cover;
+        background-position: center center;
+        background-attachment: fixed;
+        background-repeat: no-repeat;
+        font-family: 'Poppins', "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+        color: var(--text-color);
+    }
+
+    #loader {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: var(--bg-color);
+        display: flex; justify-content: center; align-items: center;
+        z-index: 9999; opacity: 1;
+        transition: opacity 0.5s ease, visibility 0.5s ease;
+        visibility: visible;
+    }
+    .spinner {
+        width: 50px; height: 50px;
+        border: 5px solid rgba(255, 255, 255, 0.2);
+        border-top-color: var(--accent-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    body.loaded #loader { opacity: 0; visibility: hidden; }
+
+    .speedtest-wrapper {
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--border-color);
+        padding: 40px; border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        display: flex; align-items: center; gap: 60px;
+        width: 850px;
+        box-sizing: border-box;
+        opacity: 0; transform: translateY(20px);
+        transition: opacity 0.5s ease 0.2s, transform 0.5s ease 0.2s;
+    }
+    body.loaded .speedtest-wrapper { opacity: 1; transform: translateY(0); }
+
+    .gauge-section { flex-shrink: 0; text-align: center; display: flex; flex-direction: column; align-items: center; }
+    .gauge-assembly { position: relative; width: 320px; height: 160px; margin-bottom: 10px; }
+    .gauge-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+    .gauge-track, .gauge-progress { fill: none; stroke-width: 20; stroke-linecap: round; }
+    .gauge-track { stroke: rgba(255, 255, 255, 0.15); }
+    .gauge-progress { stroke: url(#downloadGradient); stroke-dasharray: 440; stroke-dashoffset: 440; transition: stroke-dashoffset 0.5s ease-out, stroke 0.4s ease; }
+    .gauge-labels { position: absolute; width: 100%; height: 100%; top: 0; left: 0; color: var(--light-text-color); font-size: 14px; }
+    .gauge-labels span { position: absolute; transform: translateX(-50%); }
+    .gauge-labels .label-0 { bottom: -10px; left: 15px; } .gauge-labels .label-10 { bottom: 30px; left: 45px; } .gauge-labels .label-50 { top: 30px; left: 95px; } .gauge-labels .label-100 { top: 0px; left: 160px; } .gauge-labels .label-250 { top: 30px; right: 95px; transform: translateX(50%);} .gauge-labels .label-500 { bottom: 30px; right: 45px; transform: translateX(50%);} .gauge-labels .label-1000 { bottom: -10px; right: 15px; transform: translateX(50%);}
+    .gauge-display { position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); z-index: 4; }
+    .speed-value { font-size: 48px; font-weight: 600; color: var(--text-color); line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .speed-unit { font-size: 18px; color: var(--light-text-color); }
+    .download-label { color: var(--light-text-color); font-size: 16px; margin-top: 5px; }
+
+    .results-section { flex-grow: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
+    .results-grid { display: grid; grid-template-columns: repeat(2, minmax(100px, 1fr)); gap: 25px 50px; width: 100%; }
+    .result-item .label { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--light-text-color); margin-bottom: 8px; }
+    .result-item .label svg { width: 16px; height: 16px; fill: var(--light-text-color); }
+    .result-item .value { font-size: 28px; font-weight: 500; color: var(--text-color); text-align: left; font-variant-numeric: tabular-nums; min-height: 36px; display: flex; align-items: center; }
+    
+    .info-slider { position: relative; width: 100%; height: 2px; margin: auto 0 15px; }
+    .info-track-bg { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background-color: var(--border-color); border-radius: 1px; }
+    #wave-container { position: absolute; top: -10px; left: 0; width: 100%; height: 22px; overflow: hidden; display: none; }
+    #wave-path { stroke: var(--accent-color); stroke-width: 1.5; fill: none; }
+    .speedtest-wrapper.running #wave-container, .speedtest-wrapper.finished #wave-container { display: block; }
+    
+    .info-icon { position: absolute; top: 50%; transform: translateY(-50%); color: var(--light-text-color); }
+    .info-icon svg { width: 18px; height: 18px; fill: currentColor; }
+    .icon-home { left: -30px; }
+    .icon-server { right: -30px; }
+    
+    .info-display { margin-top: 15px; width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-size: 13px; color: var(--light-text-color); min-height: 50px; }
+    .info-display div { text-align: left; }
+    
+    #evaluationText { color: var(--accent-color-light); font-size: 14px; margin-top: 15px; font-weight: 500; min-height: 40px; display: flex; align-items: center; justify-content: center; text-align: center; opacity: 0; transition: opacity 0.5s ease; }
+    
+    #startStopBtn { margin-top: auto; font-size: 16px; font-weight: 500; padding: 10px 45px; border-radius: 20px; cursor: pointer; transition: all 0.3s ease; border: 1px solid var(--border-color); color: var(--text-color); background: transparent; }
+    #startStopBtn:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.5); }
+    #startStopBtn.running { color: var(--text-color); background: var(--accent-color); border-color: var(--accent-color); }
+    
+    @media (max-width: 900px) { .speedtest-wrapper { width: 95%; gap: 30px; height: auto; } .results-grid { grid-template-columns: repeat(2, minmax(140px, 1fr)); } .info-icon { display: none; } }
+    @media (max-width: 768px) { body { padding: 15px; } .speedtest-wrapper { flex-direction: column; padding: 25px; gap: 20px; width: 100%; height: auto; } .results-section { width: 100%; } }
+</style>
+</head>
 <body>
-<script src="speedtest_worker.min.js" defer></script>
-<!-- NOTE: Original full HTML was lengthy; consider restoring if required -->
+
+<div id="loader"><div class="spinner"></div></div>
+
+<div id="speedtestWrapper" class="speedtest-wrapper">
+    <div class="gauge-section">
+        <div class="gauge-assembly">
+            <svg class="gauge-svg" viewBox="0 0 320 170"><defs><linearGradient id="downloadGradient"><stop offset="0%" stop-color="#00c2ff" /><stop offset="100%" stop-color="#a4efff" /></linearGradient><linearGradient id="uploadGradient"><stop offset="0%" stop-color="#e040fb" /><stop offset="100%" stop-color="#f0a0ff" /></linearGradient></defs><path class="gauge-track" d="M40 150 A120 120 0 0 1 280 150"></path><path id="gaugeProgress" class="gauge-progress" d="M40 150 A120 120 0 0 1 280 150"></path></svg>
+            <div class="gauge-labels"><span class="label-0">0</span><span class="label-10">10</span><span class="label-50">50</span><span class="label-100">100</span><span class="label-250">250</span><span class="label-500">500</span><span class="label-1000">1000</span></div>
+            <div class="gauge-display"><div id="gaugeSpeed" class="speed-value">0.00</div><div class="speed-unit">Mbps</div></div>
+        </div>
+        <div id="testPhaseLabel" class="download-label">Download</div>
+    </div>
+    <div class="results-section">
+        <div class="results-grid">
+            <div class="result-item"><div class="label"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg><span>下载 每秒</span></div><div id="dlText" class="value">0.00</div></div>
+            <div class="result-item"><div class="label"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M.5 6.5A.5.5 0 0 1 1 6v-2.5a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1V6a.5.5 0 0 1 1 0V3.5a2 2 0 0 0-2-2H2a2 2 0 0 0-2 2V6a.5.5 0 0 1 .5.5z"/><path d="M7.646 4.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V14.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3z"/></svg><span>上传 每秒</span></div><div id="ulText" class="value">0.00</div></div>
+            <div class="result-item"><div class="label"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/></svg><span>延迟</span></div><div id="pingText" class="value">0.00</div></div>
+            <div class="result-item"><div class="label"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M6 1.468a.5.5 0 0 1 .521-.498l1.32.22A.5.5 0 0 1 8 1.5v13a.5.5 0 0 1-.479.498l-1.32.22a.5.5 0 0 1-.521-.498V1.468zM2 3.468a.5.5 0 0 1 .521-.498l1.32.22A.5.5 0 0 1 4 3.5v9a.5.5 0 0 1-.479.498l-1.32.22a.5.5 0 0 1-.521-.498V3.468zm8 2a.5.5 0 0 1 .521-.498l1.32.22a.5.5 0 0 1 .479.498v5a.5.5 0 0 1-.479.498l-1.32.22a.5.5 0 0 1-.521-.498v-5z"/></svg><span>抖动</span></div><div id="jitText" class="value">0.00</div></div>
+        </div>
+        <div class="info-slider">
+            <div class="info-icon icon-home"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4.5a.5.5 0 0 0 .5-.5v-4h2v4a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L8.354 1.146zM2.5 14V7.707l5.5-5.5 5.5 5.5V14H10v-4a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5v4H2.5z"/><path d="M7 1.25a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1.293l.354-.353a.5.5 0 0 1 .708.708L8.5 4.293a.5.5 0 0 1-.708 0L6.646 3.146a.5.5 0 1 1 .708-.708L7.5 2.543V1.25z"/></svg></div>
+            <div class="info-track-bg"></div>
+            <div id="wave-container"><svg id="wave-svg" width="100%" height="100%"><path id="wave-path"></path></svg></div>
+            <div class="info-icon icon-server"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5z"/><path d="M1.5 0A1.5 1.5 0 0 0 0 1.5v3A1.5 1.5 0 0 0 1.5 6h13A1.5 1.5 0 0 0 16 4.5v-3A1.5 1.5 0 0 0 14.5 0h-13zM1 1.5a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-3zM1.5 10A1.5 1.5 0 0 0 0 11.5v3A1.5 1.5 0 0 0 1.5 16h13a1.5 1.5 0 0 0 1.5-1.5v-3A1.5 1.5 0 0 0 14.5 10h-13zM1 11.5a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-3z"/></svg></div>
+        </div>
+        <div class="info-display">
+            <div id="ipAddress">您的 IP 地址: --</div>
+            <div id="ispInfo">运营商: --</div>
+            <div id="serverLocation">本机: --</div>
+        </div>
+        <div id="evaluationText"></div>
+        <button id="startStopBtn" onclick="startStop()">开始测试</button>
+    </div>
+</div>
+
+<script type="text/javascript">
+function I(id){return document.getElementById(id);}
+
+var w=null;
+const SVG_ARC_LENGTH = 440; 
+const MAX_SPEED = 1000;
+
+let animationFrameId = null;
+let waveAmplitude = 0;
+let wavePhase = 0;
+let isTestRunning = false;
+const wavePath = I('wave-path');
+const waveContainer = I('wave-container');
+
+function animateWave() {
+    const width = waveContainer.offsetWidth;
+    const height = waveContainer.offsetHeight;
+    let path = 'M 0 ' + height/2;
+    for (let x = 0; x < width; x++) {
+        const y = height/2 + waveAmplitude * Math.sin((x / 50) + wavePhase);
+        path += ' L ' + x + ' ' + y;
+    }
+    wavePath.setAttribute('d', path);
+    if(isTestRunning) wavePhase += 0.1;
+    animationFrameId = requestAnimationFrame(animateWave);
+}
+
+function updateWave(value, maxValue) {
+    const percentage = Math.min(value / maxValue, 1.0);
+    waveAmplitude = percentage * (waveContainer.offsetHeight / 2 * 0.95);
+}
+
+function setGaugeTheme(phase) {
+    const progressEl = I('gaugeProgress');
+    const labelEl = I('testPhaseLabel');
+    if (phase === 'upload') {
+        progressEl.style.stroke = 'url(#uploadGradient)';
+        labelEl.textContent = 'Upload';
+    } else {
+        progressEl.style.stroke = 'url(#downloadGradient)';
+        labelEl.textContent = 'Download';
+    }
+}
+
+function updateGauge(speed) {
+    const speedMbps = Number(speed) || 0;
+    const percentage = Math.min(Math.sqrt(speedMbps) / Math.sqrt(MAX_SPEED), 1.0);
+    I('gaugeProgress').style.strokeDashoffset = SVG_ARC_LENGTH * (1 - percentage);
+    I('gaugeSpeed').textContent = speedMbps.toFixed(2);
+}
+
+function startStop(){
+	if(w!=null){
+		w.postMessage('abort');
+		w=null;
+		I("startStopBtn").className="";
+        I("startStopBtn").textContent = "重新测试";
+        I('speedtestWrapper').classList.remove('running');
+        isTestRunning = false;
+		initUI(false);
+	}else{
+        try { w=new Worker('speedtest_worker.min.js'); } 
+        catch (error) { alert("无法启动测速。请务必通过本地服务器 (http://) 访问此页面。"); return; }
+        
+        initUI(true);
+		w.postMessage('start');
+		I("startStopBtn").className="running";
+        I("startStopBtn").textContent = "测试中...";
+        I('speedtestWrapper').classList.add('running');
+        isTestRunning = true;
+        if (!animationFrameId) { animateWave(); }
+
+		w.onmessage=function(e){
+			const data=JSON.parse(e.data);
+			const status=data.testState;
+            const dl = Number(data.dlStatus) || 0;
+            const ul = Number(data.ulStatus) || 0;
+            const ping = Number(data.pingStatus) || 0;
+            const jitter = Number(data.jitterStatus) || 0;
+
+			if(status>=4){
+				I("startStopBtn").className="";
+                I("startStopBtn").textContent = "重新测试";
+                I('speedtestWrapper').classList.remove('running');
+                I('speedtestWrapper').classList.add('finished');
+				w=null;
+                isTestRunning = false;
+                I('evaluationText').textContent = getEvaluation(dl, ul, ping, jitter);
+                I('evaluationText').style.opacity = 1;
+			}
+            
+			I("dlText").textContent = (status==1&&dl==0)?"...":dl.toFixed(2);
+			I("ulText").textContent = (status==3&&ul==0)?"...":ul.toFixed(2);
+			I("pingText").textContent = ping.toFixed(2);
+			I("jitText").textContent = jitter.toFixed(2);
+            
+            if(data.clientIp){
+                const parts = data.clientIp.split(' - ');
+                I("ipAddress").textContent = `您的 IP 地址: ${parts[0]}`;
+                if (parts.length > 1) {
+                    const details = parts[1].split(',');
+                    I("ispInfo").textContent = `运营商: ${details[0]}`;
+                    I("serverLocation").textContent = `本机: ${data.serverName || details.slice(1).join(',').trim() || '测速节点'}`;
+                } else {
+                    I("serverLocation").textContent = `本机: ${data.serverName || '测速节点'}`;
+                }
+            }
+
+            if(status === 1){ // Download
+                setGaugeTheme('download'); updateGauge(dl); updateWave(dl, 100);
+            }
+             if(status === 2){ // Ping/Jitter
+                setGaugeTheme('download'); updateWave(jitter, 50);
+            }
+            if(status === 3){ // Upload
+                setGaugeTheme('upload'); updateGauge(ul); updateWave(ul, 100);
+            }
+		};
+	}
+}
+
+setInterval(function(){ if(w) w.postMessage('status'); },200);
+
+function initUI(fullReset = true){
+	I("dlText").textContent="0.00"; I("ulText").textContent="0.00";
+	I("pingText").textContent="0.00"; I("jitText").textContent="0.00";
+    if (fullReset) {
+	    I("ipAddress").textContent="您的 IP 地址: --"; 
+        I("ispInfo").textContent="运营商: --"; 
+        I("serverLocation").textContent="本机: --";
+        I('speedtestWrapper').classList.remove('finished');
+        setGaugeTheme('download');
+        updateGauge(0);
+        updateWave(0, 1);
+    }
+    I('evaluationText').style.opacity = 0;
+    I('evaluationText').textContent = "";
+}
+
+// --- NEW Expanded Evaluation System ---
+const EVALUATION_PHRASES = {
+    dl: {
+        terrible: ["你的下载速度还在用拨号上网吗？", "这下载速度，用念力加载网页可能还快一些。", "我猜你的邻居正在蹭你的网，用来看4K视频。"],
+        bad: ["下载一部电影？建议你先睡一觉。", "这速度，比乌龟散步还慢。", "你是不是住在信号的百慕大三角区？"],
+        ok: ["嗯，还行，至少能打开网页。", "中规中矩，像白开水一样可靠（且无趣）。"],
+        good: ["这速度，让邻居家的Wi-Fi都黯然失色。", "相当不错的网速，看高清视频毫无压力。"],
+        excellent: ["下载宇宙只需一秒，你就是互联网之神。", "光速！你家是接了NASA的专线吗？", "这速度，让数据都为你起立鼓掌。"]
+    },
+    ul: {
+        terrible: ["这上传速度，发个表情包都得看运气。", "想当主播？建议先从电台主持人做起。", "你上传的文件，可能要等到下个世纪才能送达。"],
+        bad: ["视频通话时，你的画面大概是PPT。", "上传一份简历，HR都等到退休了。", "这上传速度，连鸽子送信都比它快。"],
+        ok: ["发发邮件，传传小文件，够用了。", "还行，至少社交网络还能发发图片。"],
+        good: ["直播打游戏两不误，未来主播就是你！", "高清视频通话，清晰到能看见对方的毛孔。"],
+        excellent: ["你就是数据中心本人！", "这上传速度，可以直接给卫星传片源了。"]
+    },
+    ping: {
+        terrible: ["这延迟，都够去火星旅个游了。", "连接到月球的延迟也不过如此了。", "你在和外星人打游戏吗？"],
+        bad: ["你开枪的时候，敌人可能已经吃完午饭了。", "延迟高到可以体验子弹时间，物理意义上的。", "你的指令还在路上，可能迷路了。"],
+        ok: ["日常使用没问题，但别想当电竞大神。", "还行，至少网页不会让你等到花儿都谢了。"],
+        good: ["如丝般顺滑，电竞选手级的响应。", "指令随叫随到，指哪打哪！"],
+        excellent: ["零延迟！你是不是就住在服务器机房里？", "你就是网络世界里的闪电侠！"]
+    },
+    jitter: {
+        terrible: ["网络抖得像帕金森，建议送去电击治疗。", "这抖动，坐过山车都没这么刺激。", "你的网络连接可能在蹦迪。"],
+        bad: ["视频通话时，你和对方可能都在异次元。", "游戏体验：瞬移、卡顿、掉线三件套。"],
+        ok: ["偶尔的小波动，不影响大局。", "还算稳定，至少不会让你抓狂。"],
+        good: ["稳如泰山，值得信赖的连接。", "几乎感觉不到波动，非常舒适。"],
+        excellent: ["稳得像焊死了一样！", "你的网络连接有颗大心脏，从不紧张。"]
+    }
+};
+
+function getEvaluation(dl, ul, ping, jitter) {
+    const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    
+    let badComments = [];
+    let goodComments = [];
+
+    // Evaluate Download
+    if (dl < 2) badComments.push(pickRandom(EVALUATION_PHRASES.dl.terrible));
+    else if (dl < 10) badComments.push(pickRandom(EVALUATION_PHRASES.dl.bad));
+    else if (dl > 500) goodComments.push(pickRandom(EVALUATION_PHRASES.dl.excellent));
+    else if (dl > 100) goodComments.push(pickRandom(EVALUATION_PHRASES.dl.good));
+
+    // Evaluate Upload
+    if (ul < 1) badComments.push(pickRandom(EVALUATION_PHRASES.ul.terrible));
+    else if (ul < 5) badComments.push(pickRandom(EVALUATION_PHRASES.ul.bad));
+    else if (ul > 100) goodComments.push(pickRandom(EVALUATION_PHRASES.ul.excellent));
+    else if (ul > 30) goodComments.push(pickRandom(EVALUATION_PHRASES.ul.good));
+    
+    // Evaluate Ping
+    if (ping > 200) badComments.push(pickRandom(EVALUATION_PHRASES.ping.terrible));
+    else if (ping > 80) badComments.push(pickRandom(EVALUATION_PHRASES.ping.bad));
+    else if (ping < 10) goodComments.push(pickRandom(EVALUATION_PHRASES.ping.excellent));
+    else if (ping < 30) goodComments.push(pickRandom(EVALUATION_PHRASES.ping.good));
+
+    // Evaluate Jitter
+    if (jitter > 30) badComments.push(pickRandom(EVALUATION_PHRASES.jitter.terrible));
+    else if (jitter > 10) badComments.push(pickRandom(EVALUATION_PHRASES.jitter.bad));
+    else if (jitter < 2) goodComments.push(pickRandom(EVALUATION_PHRASES.jitter.excellent));
+    else if (jitter < 5) goodComments.push(pickRandom(EVALUATION_PHRASES.jitter.good));
+
+    if (badComments.length >= 2) {
+        return `你的网络... ${badComments[0]}，雪上加霜的是，${badComments[1].toLowerCase()}。`;
+    }
+    if (badComments.length === 1) {
+        if(goodComments.length > 0) return `虽然${goodComments[0]}，但${badComments[0].toLowerCase()}。`;
+        return badComments[0];
+    }
+    if (goodComments.length >= 2) {
+        return `太强了！${goodComments[0]}，而且${goodComments[1].toLowerCase()}！`;
+    }
+    if (goodComments.length === 1) {
+        return goodComments[0];
+    }
+    
+    return pickRandom(EVALUATION_PHRASES.dl.ok);
+}
+
+window.onload = function() {
+    initUI(true);
+    document.body.classList.add('loaded');
+};
+</script>
 </body>
 </html>
