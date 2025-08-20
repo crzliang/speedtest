@@ -1,0 +1,2 @@
+<?php
+$IPINFO_APIKEY='';

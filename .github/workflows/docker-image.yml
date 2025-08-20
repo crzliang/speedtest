@@ -1,0 +1,113 @@
+name: Build and Publish Docker Image
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+# 为 GITHUB_TOKEN 赋予推送容器镜像到 GHCR 的权限
+permissions:
+  contents: read
+  packages: write
+  # 可选：若后续需要发布 release 说明
+  # deployments: write
+
+env:
+  # 在后续 prep 步中生成真正的小写镜像名
+  IMAGE_NAME_PLACEHOLDER: ghcr.io/${{ github.repository }}
+
+jobs:
+  docker:
+    name: Build (and Publish)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare image name (lowercase)
+        id: prep
+        run: |
+          IMAGE_NAME="ghcr.io/${GITHUB_REPOSITORY,,}"
+          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+          echo "Using image name: $IMAGE_NAME"
+
+      - name: Set up QEMU (multi-arch)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract Docker metadata (tags & labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+      images: ${{ steps.prep.outputs.image_name }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
+            type=sha
+          labels: |
+            org.opencontainers.image.title=speedtest
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.licenses=MIT
+
+      - name: Build & (optional) Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test (container startup)
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        run: |
+          set -e
+          echo "Run container using latest tag"
+          docker pull "${IMAGE_NAME}:latest"
+            
+          docker run -d --name speedtest_smoke -p 8080:80 "${IMAGE_NAME}:latest"
+          echo "Waiting for app..."; sleep 5
+          curl -v --retry 5 --retry-delay 2 --retry-connrefused http://127.0.0.1:8080/ | head -c 400 || (docker logs speedtest_smoke; exit 1)
+          docker logs speedtest_smoke | tail -n 50
+          docker rm -f speedtest_smoke
+
+    - name: Summary
+        run: |
+          echo "Built image tags:" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.meta.outputs.tags }}" | tr ' ' '\n' >> $GITHUB_STEP_SUMMARY
+          echo "\nPull example (latest):" >> $GITHUB_STEP_SUMMARY
+      echo "docker pull ${{ steps.prep.outputs.image_name }}:latest" >> $GITHUB_STEP_SUMMARY
+
+  # 可选：后续可添加安全扫描 / SBOM 任务
+  # scan:
+  #   needs: docker
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Download image (amd64)
+  #       run: docker pull ${{ env.IMAGE_NAME }}:latest
+  #     - name: Trivy scan
+  #       uses: aquasecurity/trivy-action@v0.24.0
+  #       with:
+  #         image-ref: ${{ env.IMAGE_NAME }}:latest
+  #         format: table
+  #         exit-code: 0
+  #         ignore-unfixed: true

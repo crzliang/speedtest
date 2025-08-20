@@ -1,0 +1,12 @@
+# 忽略临时文件与不必要内容
+.git
+.gitignore
+*.log
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
+node_modules
+vendor
+.idea
+.vscode
